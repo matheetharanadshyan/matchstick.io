@@ -29,7 +29,7 @@ const messages = new Elysia({ prefix: '/messages'}).use(authMiddleware).post("/"
         throw new Error("The Room Does Not Exist")
     }
 }, {
-    query: z.object({roomId: z.string()})
+    query: z.object({roomId: z.string()}),
     body: z.object({
         sender: z.string().max(100),
         text: z.string().max(1000),
