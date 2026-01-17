@@ -21,7 +21,7 @@ export const authMiddleware = new Elysia({name: "auth"}).error({AuthError}).onEr
         throw new AuthError("Missing Room ID or Token")
     }
 
-    const connected = await redis.hget<string[]>(`meta.${roomId}`, "connected")
+    const connected = await redis.hget<string[]>(`meta:${roomId}`, "connected")
 
     if(!connected?.includes(token)) {
         throw new AuthError("Invalid Token")
