@@ -27,9 +27,9 @@ export default function Home() {
   return <main className = "flex min-h-screen flex-col items-center justify-center p-4">
     <div className="w-full max-w-md space-y-8">
 
-      {wasDestroyed && <div className="bg-red-400 p-4 text-center"><p className="text-red-900 text-md font-bold">The Room Was Destroyed</p><p className="text-zinc-500 text-sm mt-2">All Messages Were Permanently Deleted</p></div>}
+      {wasDestroyed && <div className="bg-red-900/20 border border-red-400 p-4 text-center"><p className="text-red-300 text-md font-bold">The Room Was Destroyed</p><p className="text-zinc-300 text-sm mt-2">All Messages Were Permanently Deleted</p></div>}
 
-      {error === "room-not-found" && <div className="bg-red-400 p-4 text-center"><p className="text-red-900 text-md font-bold">The Room Is Not Found</p><p className="text-zinc-500 text-sm mt-2">This Room May Have Been Expired Or Never Existed</p></div>}
+      {error === "room-not-found" && <div className="bg-red-900/20 border border-red-400 p-4 text-center"><p className="text-red-300 text-md font-bold">The Room Is Not Found</p><p className="text-zinc-300 text-sm mt-2">This Room May Have Been Expired Or Never Existed</p></div>}
 
       {error === "room-full" && <div className="bg-red-900/20 border border-red-400 p-4 text-center"><p className="text-red-300 text-md font-bold">The Room Is Full</p><p className="text-zinc-300 text-sm mt-2">This Room Is At Maximum Capacity</p></div>}
 
