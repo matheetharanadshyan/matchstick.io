@@ -6,7 +6,7 @@ import { useRealtime } from "@/lib/realtime-client"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { format } from "date-fns"
 import { useParams, useRouter } from "next/navigation"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 function formatTimeRemaining(seconds: number) {
 
@@ -25,10 +25,43 @@ export default function Page() {
     const router = useRouter()
 
     const [copyStatus, setCopyStatus] = useState("Copy")
-    const [timeRemaining, setTimeRemaining] = useState<number | null>(51)
+    const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
     const [input, setInput] = useState("")
 
     const inputRef = useRef<HTMLInputElement>(null)
+
+    const { data: ttlData } = useQuery({
+        queryKey: ["ttl", roomId],
+        queryFn: async () => {
+            const res = await client.room.ttl.get( { query: {roomId} })
+            return res.data
+        }
+    })
+
+    useEffect(() => {
+        if (ttlData?.ttl !== undefined) setTimeRemaining(ttlData.ttl)
+      }, [ttlData])
+    
+      useEffect(() => {
+        if (timeRemaining === null || timeRemaining < 0) return
+    
+        if (timeRemaining === 0) {
+          router.push("/?destroyed=true")
+          return
+        }
+    
+        const interval = setInterval(() => {
+          setTimeRemaining((prev) => {
+            if (prev === null || prev <= 1) {
+              clearInterval(interval)
+              return 0
+            }
+            return prev - 1
+          })
+        }, 1000)
+    
+        return () => clearInterval(interval)
+      }, [timeRemaining, router])
 
     const {data: messages, refetch } = useQuery({
         queryKey: ["messages", roomId],
@@ -83,7 +116,7 @@ export default function Page() {
                     <div className="h-8 w-px bg-zinc-700"></div>
                     <div className="flex flex-col">
                         <span className="text-sm text-zinc-400 uppercase">Self-Destruct</span>
-                        <span className={`text-md font-bold flex items-center gap-2${timeRemaining !== null && timeRemaining < 60 ? "text-red-500" : "text-amber-500"}`}>{timeRemaining !== null ? formatTimeRemaining(timeRemaining) : "--:--"}</span>
+                        <span className={`text-sm font-bold flex items-center gap-2 ${ timeRemaining !== null && timeRemaining < 60 ? "text-red-400" : "text-amber-400"}`}>{timeRemaining !== null ? formatTimeRemaining(timeRemaining) : "--:--"}</span>
                     </div>
                 </div>
 
