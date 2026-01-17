@@ -1,6 +1,11 @@
 "use client"
 
-import { useParams } from "next/navigation"
+import { useUsername } from "@/hooks/use-username"
+import { client } from "@/lib/client"
+import { useRealtime } from "@/lib/realtime-client"
+import { useMutation, useQuery } from "@tanstack/react-query"
+import { format } from "date-fns"
+import { useParams, useRouter } from "next/navigation"
 import { useRef, useState } from "react"
 
 function formatTimeRemaining(seconds: number) {
@@ -12,14 +17,49 @@ function formatTimeRemaining(seconds: number) {
 
 export default function Page() {
 
+    const { username } = useUsername()
+
     const params = useParams()
     const roomId = params.roomId as string
+
+    const router = useRouter()
 
     const [copyStatus, setCopyStatus] = useState("Copy")
     const [timeRemaining, setTimeRemaining] = useState<number | null>(51)
     const [input, setInput] = useState("")
 
     const inputRef = useRef<HTMLInputElement>(null)
+
+    const {data: messages, refetch } = useQuery({
+        queryKey: ["messages", roomId],
+        queryFn: async () => {
+            const res = await client.messages.get({ query: { roomId } })
+
+            return res.data
+        }
+    })
+
+    const {mutate: sendMessage, isPending} = useMutation({
+        mutationFn: async ({ text }: {text: string}) => {
+            await client.messages.post({ sender: username, text }, {query: {roomId} })
+
+            setInput("")
+        }
+    })
+
+    useRealtime({
+        channels: [roomId],
+        events: ["chat.message", "chat.destroy"],
+        onData: ({ event }) => {
+            if(event === "chat.message") {
+                refetch()
+            }
+
+            if(event === "chat.destroy") {
+                router.push("/?destroyed=true")
+            }
+        }
+    })
 
     const copyLink = () => {
         const url = window.location.href
@@ -50,15 +90,37 @@ export default function Page() {
                 <button className="text-md bg-zinc-800 hover:bg-red-400 px-4 py-3 text-zinc-400 hover:text-white font-bold transition-all group flex items-center gap-2 disabled:opacity-50 hover:animate-pulse">Destroy Now</button>
             </header>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin"></div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+                {messages?.messages.length === 0 && (
+                    <div className="flex items-center justify-center h-full">
+                        <h2 className="text-zinc-600 font-mono text-md">No Messages Yet, Start The Conversation</h2>
+                    </div>
+                )}
+
+                {messages?.messages.map((msg) => (
+                    <div key={msg.id} className="flex flex-col items-start">
+                        <div className="max-w-[80%] group">
+                            <div className="flex items-baseline gap-3 mb-1">
+                                <span className={`text-sm font-bold ${msg.sender === username ? 'text-orange-300' : 'text-teal-300'} `}>
+                                    { msg.sender === username ? "You" : msg.sender }
+                                </span>
+
+                                <span className="text-[10px] text-zinc-500">{format(msg.timestamp, "HH:mm")}</span>
+                            </div>
+
+                            <p className="text-sm text-zinc-300 leading-relaxed break-all">{msg.text}</p>
+                        </div>
+                    </div>
+                ))}
+            </div>
 
             <div className="p-4 border-t border-zinc-700 bg-black">
                 <div className="flex gap-4">
                     <div className="flex-1 relative group">
-                        <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && input.trim()) { inputRef.current?.focus() } }} autoFocus placeholder="Type Out Your Message" className="w-full bg-black border border-zinc-800 focus:border-zinc-700 focus:outline-none transition-colors mb-0.5 text-zinc-100 placeholder:text-zinc-400 py-3 pl-8 pr-8" />
+                        <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && input.trim()) { sendMessage({text: input}), inputRef.current?.focus() } }} autoFocus placeholder="Type Out Your Message" className="w-full bg-black border border-zinc-800 focus:border-zinc-700 focus:outline-none transition-colors mb-0.5 text-zinc-100 placeholder:text-zinc-400 py-3 pl-8 pr-8" />
                     </div>
 
-                    <button className="bg-white text-black px-4 text-md mb-0.5 font-bold hover:text-zinc-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">Send Message</button>
+                    <button onClick={() => {sendMessage( { text: input} ), inputRef.current?.focus}} disabled={!input.trim() || isPending } className="bg-white text-black px-4 text-md mb-0.5 font-bold hover:text-zinc-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">Send Message</button>
                 </div>
             </div>
         </main>
