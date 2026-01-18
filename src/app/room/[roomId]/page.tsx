@@ -2,6 +2,7 @@
 
 import { useUsername } from "@/hooks/use-username"
 import { client } from "@/lib/client"
+import { decrypt, encrypt } from "@/lib/encryption"
 import { useRealtime } from "@/lib/realtime-client"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { format } from "date-fns"
@@ -13,6 +14,43 @@ function formatTimeRemaining(seconds: number) {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${mins}:${secs.toString().padStart(2, "0")}`
+}
+
+const DecryptedMessage = ({
+    text,
+    encryptionKey,
+}: {
+    text: string
+    encryptionKey: string | null
+}) => {
+    const { data: decrypted } = useQuery({
+        queryKey: ["decrypted", text, encryptionKey],
+        queryFn: async () => {
+            if (!encryptionKey) return null
+            return await decrypt(text, encryptionKey)
+        },
+        staleTime: Infinity,
+        retry: false,
+    })
+
+    if(!encryptionKey) {
+        return(
+            <span className="text-zinc-400 italic flex items-center gap-1">Encrypted Content</span>
+        )
+    }
+
+    if(decrypted === null && encryptionKey) {
+        return(
+            <div className="bg-red-900/20 border border-red-400 p-4 text-center">
+                <div className="flex flex-col">
+                    <span className="text-red-300 text-md font-bold">Decryption Failed</span>
+                    <span className="text-zinc-300 text-sm mt-2">The Encryption Key Provided Cannot Decrypt The Message</span>
+                </div>
+            </div>
+        )
+    }
+
+    return <span className="wrap-break-word whitespace-pre-wrap">{decrypted || <span className="animate-pulse">...</span>}</span>
 }
 
 export default function Page() {
@@ -27,8 +65,29 @@ export default function Page() {
     const [copyStatus, setCopyStatus] = useState("Copy")
     const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
     const [input, setInput] = useState("")
+    const [encryptionKey, setEncryptionKey] = useState<string | null>(null)
 
     const inputRef = useRef<HTMLInputElement>(null)
+
+    useEffect(() => {
+        const handleHashChange = () => {
+            const hash = window.location.hash.replace("#", "")
+            if (hash) {
+                if (hash.length !== 64) {
+                    router.push("/?error=invalid-key")
+                } else {
+                    setEncryptionKey(hash)
+                }
+            } else {
+                router.push("/?error=missing-key")
+            }
+        }
+
+        handleHashChange()
+
+        window.addEventListener("hashchange", handleHashChange)
+        return () => window.removeEventListener("hashchange", handleHashChange)
+    }, [router])
 
     const { data: ttlData } = useQuery({
         queryKey: ["ttl", roomId],
@@ -74,7 +133,12 @@ export default function Page() {
 
     const {mutate: sendMessage, isPending} = useMutation({
         mutationFn: async ({ text }: {text: string}) => {
-            await client.messages.post({ sender: username, text }, {query: {roomId} })
+            const encrypted = encryptionKey ? await encrypt(text, encryptionKey) : text
+
+            await client.messages.post(
+                { sender: username, text: encrypted },
+                { query: { roomId } }
+            )
 
             setInput("")
         }
@@ -147,7 +211,9 @@ export default function Page() {
                                 <span className="text-[10px] text-zinc-500">{format(msg.timestamp, "HH:mm")}</span>
                             </div>
 
-                            <p className="text-sm text-zinc-300 leading-relaxed break-all">{msg.text}</p>
+                            <div className="text-sm text-zinc-300 leading-relaxed break-all">
+                                <DecryptedMessage text={msg.text} encryptionKey={encryptionKey} />
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -156,7 +222,7 @@ export default function Page() {
             <div className="p-4 border-t border-zinc-700 bg-black">
                 <div className="flex gap-4">
                     <div className="flex-1 relative group">
-                        <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && input.trim()) { sendMessage({text: input}), inputRef.current?.focus() } }} autoFocus placeholder="Type Out Your Message" className="w-full bg-black border border-zinc-800 focus:border-zinc-700 focus:outline-none transition-colors mb-0.5 text-zinc-100 placeholder:text-zinc-400 py-3 pl-8 pr-8" />
+                        <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && input.trim()) { sendMessage({text: input}), inputRef.current?.focus() } }} autoFocus placeholder={ encryptionKey ? "Type Out Your Message" : "Checking The Validity Of Your Encryption"} disabled={!encryptionKey} className="w-full bg-black border border-zinc-800 focus:border-zinc-700 focus:outline-none transition-colors mb-0.5 text-zinc-100 placeholder:text-zinc-400 py-3 pl-8 pr-8 disabled:opacity-50 disabled:cursor-not-allowed" />
                     </div>
 
                     <button onClick={() => {sendMessage( { text: input} ), inputRef.current?.focus}} disabled={!input.trim() || isPending } className="bg-white text-black px-4 text-md mb-0.5 font-bold hover:text-zinc-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">Send Message</button>
