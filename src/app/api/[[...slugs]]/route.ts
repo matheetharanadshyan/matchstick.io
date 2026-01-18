@@ -66,7 +66,7 @@ const messages = new Elysia({ prefix: '/messages' }).use(authMiddleware).post("/
     query: z.object({ roomId: z.string() }),
     body: z.object({
         sender: z.string().max(100),
-        text: z.string().max(1000),
+        text: z.string().max(5000),
     })
 }).get("/", async ({ auth }) => {
     const messages = await redis.lrange<Message>(`messages:${auth.roomId}`, 0, -1)

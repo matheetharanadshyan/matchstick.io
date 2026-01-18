@@ -4,6 +4,7 @@ import { useUsername } from "@/hooks/use-username"
 import { client } from "@/lib/client"
 import { useMutation } from "@tanstack/react-query"
 import { useRouter, useSearchParams } from "next/navigation"
+import { generateKey } from "@/lib/encryption"
 import { Suspense } from "react"
 
 const Home = () => {
@@ -24,7 +25,7 @@ function Lobby() {
       const res = await client.room.create.post()
 
       if (res.status === 200) {
-        router.push(`/room/${res.data?.roomId}`)
+        router.push(`/room/${res.data?.roomId}#${generateKey()}`)
       }
     }
   })
@@ -37,6 +38,10 @@ function Lobby() {
       {error === "room-not-found" && <div className="bg-red-900/20 border border-red-400 p-4 text-center"><p className="text-red-300 text-md font-bold">The Room Is Not Found</p><p className="text-zinc-300 text-sm mt-2">This Room May Have Been Expired Or Never Existed</p></div>}
 
       {error === "room-full" && <div className="bg-red-900/20 border border-red-400 p-4 text-center"><p className="text-red-300 text-md font-bold">The Room Is Full</p><p className="text-zinc-300 text-sm mt-2">This Room Is At Maximum Capacity</p></div>}
+
+      {error === "missing-key" && <div className="bg-red-900/20 border border-red-400 p-4 text-center"><p className="text-red-300 text-md font-bold">The Encryption Key Is Missing</p><p className="text-zinc-300 text-sm mt-2">The Encryption Key Is Missing From The URL</p></div>}
+
+      {error === "invalid-key" && <div className="bg-red-900/20 border border-red-400 p-4 text-center"><p className="text-red-300 text-md font-bold">The Encryption Key Is Invalid</p><p className="text-zinc-300 text-sm mt-2">The Encryption Key Is Provided In The URL Is Invalid</p></div>}
 
       <div className="text-center space-y-5 pb-5">
         <h1 className="text-3xl font-bold text-orange-400">Matchstick.io</h1>
