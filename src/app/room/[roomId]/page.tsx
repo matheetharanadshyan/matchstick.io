@@ -8,6 +8,7 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import { format } from "date-fns"
 import { useParams, useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState, memo, useTransition } from "react"
+import { animate } from "motion"
 
 function formatTimeRemaining(seconds: number) {
 
@@ -99,12 +100,31 @@ const MessageItem = memo(({
     encryptionKey: string | null
     isNewMessage: boolean
 }) => {
+    const messageRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (isNewMessage && messageRef.current) {
+            // Check for reduced motion preference
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            
+            if (prefersReducedMotion) {
+                // Only animate opacity for reduced motion
+                animate(messageRef.current, { opacity: [0, 1] }, { duration: 0.2, easing: "ease-out" })
+            } else {
+                // Full animation: fade in and slide up
+                animate(
+                    messageRef.current,
+                    { opacity: [0, 1], y: [4, 0] },
+                    { duration: 0.2, easing: "ease-out" }
+                )
+            }
+        }
+    }, [isNewMessage])
+
     return (
         <div 
+            ref={messageRef}
             className={`flex flex-col items-start ${isFirstInGroup ? 'mt-4' : 'mt-1'}`}
-            style={{
-                animation: isNewMessage ? 'fadeInSlideUp 0.2s ease-out' : undefined
-            }}
         >
             <div className="max-w-[80%] group">
                 {isFirstInGroup && (
@@ -149,6 +169,13 @@ export default function Page() {
     const previousMessageIdsRef = useRef<Set<string>>(new Set())
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
     const [isPendingTransition, startTransition] = useTransition()
+    const headerRef = useRef<HTMLElement>(null)
+    const inputContainerRef = useRef<HTMLDivElement>(null)
+    const sendButtonRef = useRef<HTMLButtonElement>(null)
+    const destroyButtonRef = useRef<HTMLButtonElement>(null)
+    const copyButtonRef = useRef<HTMLButtonElement>(null)
+    const timerRef = useRef<HTMLSpanElement>(null)
+    const emptyStateRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         const handleHashChange = () => {
@@ -323,7 +350,15 @@ export default function Page() {
         }
     }, [])
 
-    const handleSendMessage = useCallback(() => {
+    const handleSendMessageClick = useCallback(() => {
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        if (sendButtonRef.current && !prefersReducedMotion) {
+            animate(
+                sendButtonRef.current,
+                { scale: [1, 0.98, 1] },
+                { duration: 0.15, easing: "ease-out" }
+            )
+        }
         if (!input.trim() || isPending) return
         sendMessage({ text: input })
         inputRef.current?.focus()
@@ -331,28 +366,158 @@ export default function Page() {
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter" && input.trim()) {
-            handleSendMessage()
+            handleSendMessageClick()
         } else if (e.key === "Escape") {
             setInput("")
             inputRef.current?.focus()
         }
-    }, [input, handleSendMessage])
+    }, [input, handleSendMessageClick])
 
     const formattedTime = useMemo(() => {
         if (timeRemaining === null) return "--:--"
         return formatTimeRemaining(timeRemaining)
     }, [timeRemaining])
 
+    // Subtle page entrance - just fade in
+    useEffect(() => {
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        if (prefersReducedMotion) return
+
+        if (headerRef.current) {
+            animate(headerRef.current, { opacity: [0, 1] }, { duration: 0.3, easing: "ease-out" })
+        }
+        if (inputContainerRef.current) {
+            animate(inputContainerRef.current, { opacity: [0, 1] }, { duration: 0.3, easing: "ease-out" })
+        }
+    }, [])
+
+    // Subtle empty state animation
+    useEffect(() => {
+        if (emptyStateRef.current && groupedMessages.length === 0) {
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            if (prefersReducedMotion) {
+                animate(emptyStateRef.current, { opacity: [0, 1] }, { duration: 0.2 })
+            } else {
+                animate(emptyStateRef.current, { opacity: [0, 1] }, { duration: 0.3, easing: "ease-out" })
+            }
+        }
+    }, [groupedMessages.length])
+
+    // Subtle timer update animation (only when time is low)
+    useEffect(() => {
+        if (timerRef.current && timeRemaining !== null && timeRemaining < 60 && timeRemaining > 0) {
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            if (!prefersReducedMotion) {
+                animate(
+                    timerRef.current,
+                    { scale: [1, 1.05, 1] },
+                    { duration: 0.2, easing: "ease-out" }
+                )
+            }
+        }
+    }, [timeRemaining])
+
+    // Subtle input focus animation
+    const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        if (inputRef.current && !prefersReducedMotion) {
+            animate(
+                inputRef.current,
+                { scale: [1, 1.005] },
+                { duration: 0.2, easing: "ease-out" }
+            )
+        }
+    }
+
+    const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        if (inputRef.current) {
+            animate(
+                inputRef.current,
+                { scale: [1.005, 1] },
+                { duration: 0.2, easing: "ease-out" }
+            )
+        }
+    }
+
+    // Subtle button hover animations
+    const handleSendButtonHover = (isEntering: boolean) => {
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        if (sendButtonRef.current && !prefersReducedMotion) {
+            animate(
+                sendButtonRef.current,
+                { scale: isEntering ? 1.02 : 1, y: isEntering ? -1 : 0 },
+                { duration: 0.2, easing: "ease-out" }
+            )
+        }
+    }
+
+    const handleDestroyButtonHover = (isEntering: boolean) => {
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        if (destroyButtonRef.current && !prefersReducedMotion) {
+            animate(
+                destroyButtonRef.current,
+                { scale: isEntering ? 1.02 : 1, y: isEntering ? -1 : 0 },
+                { duration: 0.2, easing: "ease-out" }
+            )
+        }
+    }
+
+    const handleCopyButtonClick = () => {
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        if (copyButtonRef.current && !prefersReducedMotion) {
+            animate(
+                copyButtonRef.current,
+                { scale: [1, 0.95, 1] },
+                { duration: 0.15, easing: "ease-out" }
+            )
+        }
+    }
+
+    const handleDestroyClick = () => {
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        if (destroyButtonRef.current && !prefersReducedMotion) {
+            animate(
+                destroyButtonRef.current,
+                { scale: [1, 0.98, 1] },
+                { duration: 0.15, easing: "ease-out" }
+            )
+        }
+        handleDestroyRoom()
+    }
+
     return (
         <main className="flex flex-col h-screen max-h-screen overflow-hidden">
-            <header className="border-b border-zinc-700 p-4 flex items-center justify-between bg-black">
+            <header ref={headerRef} className="border-b border-zinc-700 p-4 flex items-center justify-between bg-black">
                 <div className="flex items-center gap-4">
                     <div className="flex flex-col">
                         <span className="text-sm text-zinc-500 uppercase">ROOM ID:</span>
                         <div className="flex items-center gap-2">
                             <span className="text-md font-bold text-orange-400">{roomId}</span>
                             <button 
-                                onClick={copyLink} 
+                                ref={copyButtonRef}
+                                onClick={() => {
+                                    handleCopyButtonClick()
+                                    copyLink()
+                                }}
+                                onMouseEnter={() => {
+                                    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                                    if (copyButtonRef.current && !prefersReducedMotion) {
+                                        animate(
+                                            copyButtonRef.current,
+                                            { scale: 1.05 },
+                                            { duration: 0.2, easing: "ease-out" }
+                                        )
+                                    }
+                                }}
+                                onMouseLeave={() => {
+                                    if (copyButtonRef.current) {
+                                        animate(
+                                            copyButtonRef.current,
+                                            { scale: 1 },
+                                            { duration: 0.2, easing: "ease-out" }
+                                        )
+                                    }
+                                }}
                                 aria-label="Copy room link"
                                 className="text-[10px] bg-zinc-900 hover:bg-zinc-700 ml-1 px-2 py-0.5 rounded text-zinc-400 hover:text-zinc-200 transition-colors"
                             >
@@ -365,6 +530,7 @@ export default function Page() {
                     <div className="flex flex-col">
                         <span className="text-sm text-zinc-400 uppercase">Self-Destruct</span>
                         <span 
+                            ref={timerRef}
                             className={`text-sm font-bold flex items-center gap-2 ${ timeRemaining !== null && timeRemaining < 60 ? "text-red-400" : "text-amber-400"}`}
                             aria-live="polite"
                             aria-atomic="true"
@@ -375,9 +541,12 @@ export default function Page() {
                 </div>
 
                 <button 
-                    onClick={handleDestroyRoom} 
+                    ref={destroyButtonRef}
+                    onClick={handleDestroyClick}
+                    onMouseEnter={() => handleDestroyButtonHover(true)}
+                    onMouseLeave={() => handleDestroyButtonHover(false)}
                     aria-label="Destroy room immediately"
-                    className="text-md bg-zinc-800 hover:bg-red-400 px-4 py-3 text-zinc-400 hover:text-white font-bold transition-all group flex items-center gap-2 disabled:opacity-50 hover:animate-pulse"
+                    className="text-md bg-zinc-800 hover:bg-red-400 px-4 py-3 text-zinc-400 hover:text-white font-bold transition-all group flex items-center gap-2 disabled:opacity-50"
                 >
                     Destroy Now
                 </button>
@@ -390,7 +559,7 @@ export default function Page() {
                 aria-label="Chat messages"
             >
                 {groupedMessages.length === 0 && (
-                    <div className="flex items-center justify-center h-full">
+                    <div ref={emptyStateRef} className="flex items-center justify-center h-full">
                         <h2 className="text-zinc-600 font-mono text-md">No Messages Yet, Start The Conversation</h2>
                     </div>
                 )}
@@ -408,7 +577,7 @@ export default function Page() {
                 <div ref={messagesEndRef} />
             </div>
 
-            <div className="p-4 border-t border-zinc-700 bg-black">
+            <div ref={inputContainerRef} className="p-4 border-t border-zinc-700 bg-black">
                 <div className="flex gap-4">
                     <div className="flex-1 relative group">
                         <input 
@@ -417,6 +586,8 @@ export default function Page() {
                             value={input} 
                             onChange={(e) => setInput(e.target.value)} 
                             onKeyDown={handleKeyDown}
+                            onFocus={handleInputFocus}
+                            onBlur={handleInputBlur}
                             autoFocus 
                             placeholder={ encryptionKey ? "Type Out Your Message" : "Checking The Validity Of Your Encryption"} 
                             disabled={!encryptionKey} 
@@ -430,7 +601,10 @@ export default function Page() {
                     </div>
 
                     <button 
-                        onClick={handleSendMessage} 
+                        ref={sendButtonRef}
+                        onClick={handleSendMessageClick}
+                        onMouseEnter={() => handleSendButtonHover(true)}
+                        onMouseLeave={() => handleSendButtonHover(false)}
                         disabled={!input.trim() || isPending} 
                         aria-label="Send Message"
                         className="bg-white text-black px-4 text-md mb-0.5 font-bold hover:text-zinc-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
