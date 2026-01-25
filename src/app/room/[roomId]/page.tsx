@@ -54,7 +54,7 @@ const DecryptedMessage = memo(({
     return <span className="wrap-break-word whitespace-pre-wrap">{decrypted || <span className="animate-pulse">...</span>}</span>
 })
 
-const GROUP_TIME_THRESHOLD = 5 * 60 * 1000 // 5 minutes
+const GROUP_TIME_THRESHOLD = 5 * 60 * 1000
 
 type GroupedMessage = {
     id: string
@@ -104,18 +104,17 @@ const MessageItem = memo(({
 
     useEffect(() => {
         if (isNewMessage && messageRef.current) {
-            // Check for reduced motion preference
             const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
             
             if (prefersReducedMotion) {
-                // Only animate opacity for reduced motion
-                animate(messageRef.current, { opacity: [0, 1] }, { duration: 0.2, easing: "ease-out" })
+                // @ts-ignore
+                animate(messageRef.current, { opacity: [0, 1] }, { duration: 0.25, easing: [0.16, 1, 0.3, 1] })
             } else {
-                // Full animation: fade in and slide up
+                // @ts-ignore
                 animate(
                     messageRef.current,
                     { opacity: [0, 1], y: [4, 0] },
-                    { duration: 0.2, easing: "ease-out" }
+                    { duration: 0.3, easing: [0.16, 1, 0.3, 1] }
                 )
             }
         }
@@ -240,7 +239,6 @@ export default function Page() {
         }
     })
 
-    // Debounced refetch function
     const debouncedRefetch = useCallback(() => {
         if (debounceTimerRef.current) {
             clearTimeout(debounceTimerRef.current)
@@ -252,13 +250,11 @@ export default function Page() {
         }, 300)
     }, [refetch, startTransition])
 
-    // Group messages and track new ones for animations
     const groupedMessages = useMemo(() => {
         if (!messages?.messages) return []
         return groupMessages(messages.messages)
     }, [messages?.messages])
 
-    // Track which messages are new for animation
     const newMessageIds = useMemo(() => {
         if (!messages?.messages) return new Set<string>()
         
@@ -353,10 +349,11 @@ export default function Page() {
     const handleSendMessageClick = useCallback(() => {
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         if (sendButtonRef.current && !prefersReducedMotion) {
+            // @ts-ignore
             animate(
                 sendButtonRef.current,
                 { scale: [1, 0.98, 1] },
-                { duration: 0.15, easing: "ease-out" }
+                { duration: 0.2, easing: [0.16, 1, 0.3, 1] }
             )
         }
         if (!input.trim() || isPending) return
@@ -378,36 +375,115 @@ export default function Page() {
         return formatTimeRemaining(timeRemaining)
     }, [timeRemaining])
 
-    // Subtle page entrance - just fade in
     useEffect(() => {
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        if (prefersReducedMotion) return
-
+        
         if (headerRef.current) {
-            animate(headerRef.current, { opacity: [0, 1] }, { duration: 0.3, easing: "ease-out" })
+            headerRef.current.setAttribute('data-animating', 'true')
+            headerRef.current.style.opacity = '0'
+            headerRef.current.style.transform = 'translateY(-20px)'
         }
         if (inputContainerRef.current) {
-            animate(inputContainerRef.current, { opacity: [0, 1] }, { duration: 0.3, easing: "ease-out" })
+            inputContainerRef.current.setAttribute('data-animating', 'true')
+            inputContainerRef.current.style.opacity = '0'
+            inputContainerRef.current.style.transform = 'translateY(20px)'
         }
+        
+        if (prefersReducedMotion) {
+            if (headerRef.current) {
+                headerRef.current.style.opacity = '1'
+                headerRef.current.style.transform = 'translateY(0)'
+            }
+            if (inputContainerRef.current) {
+                inputContainerRef.current.style.opacity = '1'
+                inputContainerRef.current.style.transform = 'translateY(0)'
+            }
+            return
+        }
+
+        requestAnimationFrame(() => {
+            if (headerRef.current) {
+                // @ts-ignore
+                const animation = animate(headerRef.current, { opacity: [0, 1], y: [-20, 0] }, { duration: 0.6, easing: [0.16, 1, 0.3, 1], delay: 0.1 })
+                animation.then(() => {
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            if (headerRef.current) {
+                                headerRef.current.classList.add('animate-complete')
+                                headerRef.current.style.opacity = '1'
+                                headerRef.current.style.transform = 'translateY(0)'
+                                headerRef.current.removeAttribute('data-animating')
+                            }
+                        })
+                    })
+                })
+            }
+            if (inputContainerRef.current) {
+                // @ts-ignore
+                const animation = animate(inputContainerRef.current, { opacity: [0, 1], y: [20, 0] }, { duration: 0.6, easing: [0.16, 1, 0.3, 1], delay: 0.2 })
+                animation.then(() => {
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            if (inputContainerRef.current) {
+                                inputContainerRef.current.classList.add('animate-complete')
+                                inputContainerRef.current.style.opacity = '1'
+                                inputContainerRef.current.style.transform = 'translateY(0)'
+                                inputContainerRef.current.removeAttribute('data-animating')
+                            }
+                        })
+                    })
+                })
+            }
+        })
     }, [])
 
-    // Subtle empty state animation
     useEffect(() => {
         if (emptyStateRef.current && groupedMessages.length === 0) {
             const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-            if (prefersReducedMotion) {
-                animate(emptyStateRef.current, { opacity: [0, 1] }, { duration: 0.2 })
-            } else {
-                animate(emptyStateRef.current, { opacity: [0, 1] }, { duration: 0.3, easing: "ease-out" })
+            
+            emptyStateRef.current.style.opacity = '0'
+            if (!prefersReducedMotion) {
+                emptyStateRef.current.style.transform = 'translateY(20px)'
             }
+            
+            requestAnimationFrame(() => {
+                if (prefersReducedMotion) {
+                    // @ts-ignore
+                    const animation = animate(emptyStateRef.current, { opacity: [0, 1] }, { duration: 0.2 })
+                    animation.then(() => {
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                if (emptyStateRef.current) {
+                                    emptyStateRef.current.style.opacity = '1'
+                                }
+                            })
+                        })
+                    })
+                } else {
+                    // @ts-ignore
+                    const animation = animate(emptyStateRef.current, { opacity: [0, 1], y: [20, 0] }, { duration: 0.5, easing: [0.16, 1, 0.3, 1] })
+                    animation.then(() => {
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                if (emptyStateRef.current) {
+                                    emptyStateRef.current.classList.add('animate-complete')
+                                    emptyStateRef.current.style.opacity = '1'
+                                    emptyStateRef.current.style.transform = 'translateY(0)'
+                                    emptyStateRef.current.removeAttribute('data-animating')
+                                }
+                            })
+                        })
+                    })
+                }
+            })
         }
     }, [groupedMessages.length])
 
-    // Subtle timer update animation (only when time is low)
     useEffect(() => {
         if (timerRef.current && timeRemaining !== null && timeRemaining < 60 && timeRemaining > 0) {
             const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
             if (!prefersReducedMotion) {
+                // @ts-ignore
                 animate(
                     timerRef.current,
                     { scale: [1, 1.05, 1] },
@@ -417,10 +493,10 @@ export default function Page() {
         }
     }, [timeRemaining])
 
-    // Subtle input focus animation
     const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         if (inputRef.current && !prefersReducedMotion) {
+            // @ts-ignore
             animate(
                 inputRef.current,
                 { scale: [1, 1.005] },
@@ -431,6 +507,7 @@ export default function Page() {
 
     const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
         if (inputRef.current) {
+            // @ts-ignore
             animate(
                 inputRef.current,
                 { scale: [1.005, 1] },
@@ -439,10 +516,10 @@ export default function Page() {
         }
     }
 
-    // Subtle button hover animations
     const handleSendButtonHover = (isEntering: boolean) => {
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         if (sendButtonRef.current && !prefersReducedMotion) {
+            // @ts-ignore
             animate(
                 sendButtonRef.current,
                 { scale: isEntering ? 1.02 : 1, y: isEntering ? -1 : 0 },
@@ -454,6 +531,7 @@ export default function Page() {
     const handleDestroyButtonHover = (isEntering: boolean) => {
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         if (destroyButtonRef.current && !prefersReducedMotion) {
+            // @ts-ignore
             animate(
                 destroyButtonRef.current,
                 { scale: isEntering ? 1.02 : 1, y: isEntering ? -1 : 0 },
@@ -465,6 +543,7 @@ export default function Page() {
     const handleCopyButtonClick = () => {
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         if (copyButtonRef.current && !prefersReducedMotion) {
+            // @ts-ignore
             animate(
                 copyButtonRef.current,
                 { scale: [1, 0.95, 1] },
@@ -476,6 +555,7 @@ export default function Page() {
     const handleDestroyClick = () => {
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         if (destroyButtonRef.current && !prefersReducedMotion) {
+            // @ts-ignore
             animate(
                 destroyButtonRef.current,
                 { scale: [1, 0.98, 1] },
@@ -502,6 +582,7 @@ export default function Page() {
                                 onMouseEnter={() => {
                                     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
                                     if (copyButtonRef.current && !prefersReducedMotion) {
+                                        // @ts-ignore
                                         animate(
                                             copyButtonRef.current,
                                             { scale: 1.05 },
@@ -511,6 +592,7 @@ export default function Page() {
                                 }}
                                 onMouseLeave={() => {
                                     if (copyButtonRef.current) {
+                                        // @ts-ignore
                                         animate(
                                             copyButtonRef.current,
                                             { scale: 1 },

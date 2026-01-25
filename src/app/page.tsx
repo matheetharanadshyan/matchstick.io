@@ -23,32 +23,92 @@ function Lobby() {
   const cardRef = useRef<HTMLDivElement>(null)
   const errorRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+  const titleRef = useRef<HTMLDivElement>(null)
 
-  // Subtle entrance animation only
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (prefersReducedMotion) return
-
-    if (cardRef.current) {
-      animate(
-        cardRef.current,
-        { opacity: [0, 1] },
-        { duration: 0.3, easing: "ease-out" }
-      )
+    
+    if (titleRef.current) {
+      titleRef.current.setAttribute('data-animating', 'true')
+      titleRef.current.style.opacity = '0'
+      titleRef.current.style.transform = 'translateY(20px)'
     }
+    if (cardRef.current) {
+      cardRef.current.setAttribute('data-animating', 'true')
+      cardRef.current.style.opacity = '0'
+      cardRef.current.style.transform = 'translateY(20px)'
+    }
+    
+    if (prefersReducedMotion) {
+      if (titleRef.current) {
+        titleRef.current.style.opacity = '1'
+        titleRef.current.style.transform = 'translateY(0)'
+      }
+      if (cardRef.current) {
+        cardRef.current.style.opacity = '1'
+        cardRef.current.style.transform = 'translateY(0)'
+      }
+      return
+    }
+
+    requestAnimationFrame(() => {
+      if (titleRef.current) {
+        const animation = animate(
+          titleRef.current,
+          // @ts-ignore
+          { opacity: [0, 1], y: [20, 0] },
+          { duration: 0.6, easing: [0.16, 1, 0.3, 1], delay: 0.1 }
+        )
+        animation.then(() => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              if (titleRef.current) {
+                titleRef.current.classList.add('animate-complete')
+                titleRef.current.style.opacity = '1'
+                titleRef.current.style.transform = 'translateY(0)'
+                titleRef.current.removeAttribute('data-animating')
+              }
+            })
+          })
+        })
+      }
+
+      if (cardRef.current) {
+        const animation = animate(
+          cardRef.current,
+          // @ts-ignore
+          { opacity: [0, 1], y: [20, 0] },
+          { duration: 0.6, easing: [0.16, 1, 0.3, 1], delay: 0.2 }
+        )
+        animation.then(() => {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              if (cardRef.current) {
+                cardRef.current.classList.add('animate-complete')
+                cardRef.current.style.opacity = '1'
+                cardRef.current.style.transform = 'translateY(0)'
+                cardRef.current.removeAttribute('data-animating')
+              }
+            })
+          })
+        })
+      }
+    })
   }, [])
 
-  // Subtle error message animation
   useEffect(() => {
     if (errorRef.current && (wasDestroyed || error)) {
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
       if (prefersReducedMotion) {
-        animate(errorRef.current, { opacity: [0, 1] }, { duration: 0.2 })
+        animate(errorRef.current, 
+        // @ts-ignore
+        { opacity: [0, 1] }, { duration: 0.2 })
       } else {
         animate(
           errorRef.current,
-          { opacity: [0, 1] },
-          { duration: 0.25, easing: "ease-out" }
+          // @ts-ignore
+          { opacity: [0, 1], y: [15, 0] },
+          { duration: 0.4, easing: [0.16, 1, 0.3, 1] }
         )
       }
     }
@@ -68,8 +128,9 @@ function Lobby() {
     if (buttonRef.current) {
       animate(
         buttonRef.current,
+        // @ts-ignore
         { scale: [1, 0.98, 1] },
-        { duration: 0.15, easing: "ease-out" }
+        { duration: 0.2, easing: [0.16, 1, 0.3, 1] }
       )
     }
     createRoom()
@@ -79,8 +140,9 @@ function Lobby() {
     if (buttonRef.current) {
       animate(
         buttonRef.current,
+        // @ts-ignore
         { scale: isEntering ? 1.01 : 1, y: isEntering ? -1 : 0 },
-        { duration: 0.2, easing: "ease-out" }
+        { duration: 0.25, easing: [0.16, 1, 0.3, 1] }
       )
     }
   }
@@ -138,9 +200,9 @@ function Lobby() {
         </div>
       )}
 
-      <div className="text-center space-y-5 pb-5">
+      <div ref={titleRef} className="text-center space-y-5 pb-5">
         <h1 className="text-3xl font-bold text-orange-400">Matchstick.io</h1>
-        <p> A Private Encrypted Self-Destructing Chat Room</p>
+        <p>Encrypted Conversations, Designed To Disappear</p>
       </div>
       <div ref={cardRef} className="border border-zinc-700 background-zinc-900/50 p-6 backdrop-blur-md">
       <div className="space-y-5">
