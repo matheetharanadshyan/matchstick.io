@@ -107,14 +107,18 @@ const MessageItem = memo(({
             const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
             
             if (prefersReducedMotion) {
-                // @ts-ignore
-                animate(messageRef.current, { opacity: [0, 1] }, { duration: 0.25, easing: [0.16, 1, 0.3, 1] })
-            } else {
-                // @ts-ignore
+                // Suppress strict Motion typings – values are valid at runtime
                 animate(
                     messageRef.current,
-                    { opacity: [0, 1], y: [4, 0] },
-                    { duration: 0.3, easing: [0.16, 1, 0.3, 1] }
+                    { opacity: [0, 1] } as any,
+                    { duration: 0.25, easing: [0.16, 1, 0.3, 1] } as any
+                )
+            } else {
+                // Suppress strict Motion typings – values are valid at runtime
+                animate(
+                    messageRef.current,
+                    { opacity: [0, 1], y: [4, 0] } as any,
+                    { duration: 0.3, easing: [0.16, 1, 0.3, 1] } as any
                 )
             }
         }
@@ -349,11 +353,10 @@ export default function Page() {
     const handleSendMessageClick = useCallback(() => {
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         if (sendButtonRef.current && !prefersReducedMotion) {
-            // @ts-ignore
             animate(
                 sendButtonRef.current,
-                { scale: [1, 0.98, 1] },
-                { duration: 0.2, easing: [0.16, 1, 0.3, 1] }
+                { scale: [1, 0.98, 1] } as any,
+                { duration: 0.2, easing: [0.16, 1, 0.3, 1] } as any
             )
         }
         if (!input.trim() || isPending) return
@@ -403,8 +406,11 @@ export default function Page() {
 
         requestAnimationFrame(() => {
             if (headerRef.current) {
-                // @ts-ignore
-                const animation = animate(headerRef.current, { opacity: [0, 1], y: [-20, 0] }, { duration: 0.6, easing: [0.16, 1, 0.3, 1], delay: 0.1 })
+                const animation = animate(
+                    headerRef.current,
+                    { opacity: [0, 1], y: [-20, 0] } as any,
+                    { duration: 0.6, easing: [0.16, 1, 0.3, 1], delay: 0.1 } as any
+                )
                 animation.then(() => {
                     requestAnimationFrame(() => {
                         requestAnimationFrame(() => {
@@ -419,8 +425,11 @@ export default function Page() {
                 })
             }
             if (inputContainerRef.current) {
-                // @ts-ignore
-                const animation = animate(inputContainerRef.current, { opacity: [0, 1], y: [20, 0] }, { duration: 0.6, easing: [0.16, 1, 0.3, 1], delay: 0.2 })
+                const animation = animate(
+                    inputContainerRef.current,
+                    { opacity: [0, 1], y: [20, 0] } as any,
+                    { duration: 0.6, easing: [0.16, 1, 0.3, 1], delay: 0.2 } as any
+                )
                 animation.then(() => {
                     requestAnimationFrame(() => {
                         requestAnimationFrame(() => {
@@ -448,8 +457,11 @@ export default function Page() {
             
             requestAnimationFrame(() => {
                 if (prefersReducedMotion) {
-                    // @ts-ignore
-                    const animation = animate(emptyStateRef.current, { opacity: [0, 1] }, { duration: 0.2 })
+                    const animation = animate(
+                        emptyStateRef.current,
+                        { opacity: [0, 1] } as any,
+                        { duration: 0.2 } as any
+                    )
                     animation.then(() => {
                         requestAnimationFrame(() => {
                             requestAnimationFrame(() => {
@@ -460,8 +472,11 @@ export default function Page() {
                         })
                     })
                 } else {
-                    // @ts-ignore
-                    const animation = animate(emptyStateRef.current, { opacity: [0, 1], y: [20, 0] }, { duration: 0.5, easing: [0.16, 1, 0.3, 1] })
+                    const animation = animate(
+                        emptyStateRef.current,
+                        { opacity: [0, 1], y: [20, 0] } as any,
+                        { duration: 0.5, easing: [0.16, 1, 0.3, 1] } as any
+                    )
                     animation.then(() => {
                         requestAnimationFrame(() => {
                             requestAnimationFrame(() => {
@@ -483,11 +498,10 @@ export default function Page() {
         if (timerRef.current && timeRemaining !== null && timeRemaining < 60 && timeRemaining > 0) {
             const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
             if (!prefersReducedMotion) {
-                // @ts-ignore
                 animate(
                     timerRef.current,
-                    { scale: [1, 1.05, 1] },
-                    { duration: 0.2, easing: "ease-out" }
+                    { scale: [1, 1.05, 1] } as any,
+                    { duration: 0.2, easing: "ease-out" } as any
                 )
             }
         }
@@ -496,22 +510,20 @@ export default function Page() {
     const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         if (inputRef.current && !prefersReducedMotion) {
-            // @ts-ignore
             animate(
                 inputRef.current,
-                { scale: [1, 1.005] },
-                { duration: 0.2, easing: "ease-out" }
+                { scale: [1, 1.005] } as any,
+                { duration: 0.2, easing: "ease-out" } as any
             )
         }
     }
 
     const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
         if (inputRef.current) {
-            // @ts-ignore
             animate(
                 inputRef.current,
-                { scale: [1.005, 1] },
-                { duration: 0.2, easing: "ease-out" }
+                { scale: [1.005, 1] } as any,
+                { duration: 0.2, easing: "ease-out" } as any
             )
         }
     }
@@ -519,11 +531,10 @@ export default function Page() {
     const handleSendButtonHover = (isEntering: boolean) => {
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         if (sendButtonRef.current && !prefersReducedMotion) {
-            // @ts-ignore
             animate(
                 sendButtonRef.current,
-                { scale: isEntering ? 1.02 : 1, y: isEntering ? -1 : 0 },
-                { duration: 0.2, easing: "ease-out" }
+                { scale: isEntering ? 1.02 : 1, y: isEntering ? -1 : 0 } as any,
+                { duration: 0.2, easing: "ease-out" } as any
             )
         }
     }
@@ -531,11 +542,10 @@ export default function Page() {
     const handleDestroyButtonHover = (isEntering: boolean) => {
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         if (destroyButtonRef.current && !prefersReducedMotion) {
-            // @ts-ignore
             animate(
                 destroyButtonRef.current,
-                { scale: isEntering ? 1.02 : 1, y: isEntering ? -1 : 0 },
-                { duration: 0.2, easing: "ease-out" }
+                { scale: isEntering ? 1.02 : 1, y: isEntering ? -1 : 0 } as any,
+                { duration: 0.2, easing: "ease-out" } as any
             )
         }
     }
@@ -543,11 +553,10 @@ export default function Page() {
     const handleCopyButtonClick = () => {
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         if (copyButtonRef.current && !prefersReducedMotion) {
-            // @ts-ignore
             animate(
                 copyButtonRef.current,
-                { scale: [1, 0.95, 1] },
-                { duration: 0.15, easing: "ease-out" }
+                { scale: [1, 0.95, 1] } as any,
+                { duration: 0.15, easing: "ease-out" } as any
             )
         }
     }
@@ -555,11 +564,10 @@ export default function Page() {
     const handleDestroyClick = () => {
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
         if (destroyButtonRef.current && !prefersReducedMotion) {
-            // @ts-ignore
             animate(
                 destroyButtonRef.current,
-                { scale: [1, 0.98, 1] },
-                { duration: 0.15, easing: "ease-out" }
+                { scale: [1, 0.98, 1] } as any,
+                { duration: 0.15, easing: "ease-out" } as any
             )
         }
         handleDestroyRoom()
@@ -582,21 +590,19 @@ export default function Page() {
                                 onMouseEnter={() => {
                                     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
                                     if (copyButtonRef.current && !prefersReducedMotion) {
-                                        // @ts-ignore
                                         animate(
                                             copyButtonRef.current,
-                                            { scale: 1.05 },
-                                            { duration: 0.2, easing: "ease-out" }
+                                            { scale: 1.05 } as any,
+                                            { duration: 0.2, easing: "ease-out" } as any
                                         )
                                     }
                                 }}
                                 onMouseLeave={() => {
                                     if (copyButtonRef.current) {
-                                        // @ts-ignore
                                         animate(
                                             copyButtonRef.current,
-                                            { scale: 1 },
-                                            { duration: 0.2, easing: "ease-out" }
+                                            { scale: 1 } as any,
+                                            { duration: 0.2, easing: "ease-out" } as any
                                         )
                                     }
                                 }}
