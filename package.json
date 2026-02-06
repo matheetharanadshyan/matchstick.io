@@ -13,6 +13,8 @@
     "@tanstack/react-query": "^5.90.17",
     "@upstash/realtime": "^1.0.2",
     "@upstash/redis": "^1.36.1",
+    "@vercel/analytics": "^1.6.1",
+    "@vercel/speed-insights": "^1.3.1",
     "date-fns": "^4.1.0",
     "elysia": "^1.4.22",
     "motion": "^12.29.0",
