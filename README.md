@@ -1,6 +1,6 @@
 # Matchstick.io: Encrypted Conversations, Designed To Disappear
 
-<video src="[public/Matchstick.mp4](https://github.com/matheetharanadshyan/matchstick.io/raw/main/public/Matchstick.mp4)" controls width="740"></video>
+<video src="public/Matchstick.mp4" controls width="740"></video>
 
 Matchstick.io is an online privacy focused communication tool that allows individuals to communicate securely and anonymously via the Internet. Individuals can create temporary, ephemeral rooms and share access links with other individuals, allowing real-time interaction without the necessity for an account creation or long-term data storage.
 
